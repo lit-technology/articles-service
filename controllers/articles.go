@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/philip-bui/articles-service/models"
 	"github.com/philip-bui/articles-service/services/mysql"
 )
@@ -30,4 +31,20 @@ func InsertArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetArticle(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	ID := params.ByName("id")
+
+	a, err := mysql.GetArticleByID(ID)
+	if err != nil {
+		if err.Error() == mysql.NoResults {
+			http.Error(w, "article "+ID+" not found", 404)
+		} else {
+			http.Error(w, err.Error(), 500)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(a)
 }
